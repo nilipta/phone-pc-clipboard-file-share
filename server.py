@@ -7,8 +7,13 @@ import sys
 import threading
 
 PORT = 8000
-UPLOAD_DIR = "uploads"
+UPLOAD_DIR = r"R:\uploads"
+# ...existing code...
 
+# Add this line before defining your handler or starting the server:
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+# ...existing code...
 
 class MyHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
@@ -69,6 +74,20 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Location', '/')
             self.end_headers()
             return
+        
+    def do_GET(self):
+        if self.path.startswith("R"):
+            fname = urllib.parse.unquote(self.path[len("/uploads/"):])
+            file_path = os.path.join(UPLOAD_DIR, fname)
+            if os.path.isfile(file_path):
+                self.send_response(200)
+                self.send_header("Content-Disposition", f'attachment; filename="{fname}"')
+                self.send_header("Content-type", "application/octet-stream")
+                self.end_headers()
+                with open(file_path, "rb") as f:
+                    self.wfile.write(f.read())
+            else:
+                self.send_error(404, "File not found")
 
 
 Handler = MyHandler
