@@ -106,10 +106,49 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 </form>
 
                 <h2>Upload a File</h2>
-                <form action="/" method="post" enctype="multipart/form-data">
-                  <input type="file" name="file" multiple /><br /><br />
+                <form id="uploadForm">
+                  <input type="file" name="file" id="fileInput" multiple /><br /><br />
                   <input type="submit" value="Upload" />
                 </form>
+                <progress id="progressBar" value="0" max="100" style="width:300px; display:none;"></progress>
+                <span id="progressText"></span>
+
+                <script>
+                document.getElementById('uploadForm').onsubmit = function(e) {{
+                  e.preventDefault();
+                  var fileInput = document.getElementById('fileInput');
+                  var files = fileInput.files;
+                  if (!files.length) return;
+
+                  var formData = new FormData();
+                  for (let i = 0; i < files.length; i++) {{
+                    formData.append('file', files[i]);
+                  }}
+
+                  var xhr = new XMLHttpRequest();
+                  xhr.open('POST', '/', true);
+
+                  xhr.upload.onprogress = function(e) {{
+                    if (e.lengthComputable) {{
+                      var percent = Math.round((e.loaded / e.total) * 100);
+                      document.getElementById('progressBar').style.display = '';
+                      document.getElementById('progressBar').value = percent;
+                      document.getElementById('progressText').textContent = percent + '%';
+                    }}
+                  }};
+
+                  xhr.onload = function() {{
+                    if (xhr.status == 200 || xhr.status == 303) {{
+                      document.getElementById('progressText').textContent = 'Upload complete!';
+                      setTimeout(function() {{ location.reload(); }}, 1000);
+                    }} else {{
+                      document.getElementById('progressText').textContent = 'Upload failed!';
+                    }}
+                  }};
+
+                  xhr.send(formData);
+                }};
+                </script>
 
                 <h2>Files in R:\\uploads</h2>
                 {file_list_html}
