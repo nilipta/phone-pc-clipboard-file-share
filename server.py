@@ -8,12 +8,9 @@ import threading
 
 PORT = 8000
 UPLOAD_DIR = r"R:\uploads"
-# ...existing code...
 
 # Add this line before defining your handler or starting the server:
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
-# ...existing code...
 
 class MyHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
@@ -76,7 +73,51 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             return
         
     def do_GET(self):
-        if self.path.startswith("R"):
+        if self.path == "/" or self.path == "/index.html":
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+
+            # List files in UPLOAD_DIR
+            try:
+                files = os.listdir(UPLOAD_DIR)
+            except Exception:
+                files = []
+
+            file_list_html = "<ul>"
+            for fname in files:
+                file_url = f"/uploads/{urllib.parse.quote(fname)}"
+                file_list_html += f'<li><a href="{file_url}" target="_blank">{fname}</a></li>'
+            file_list_html += "</ul>"
+
+            html = f"""
+            <!DOCTYPE html>
+            <html lang="en">
+              <head>
+                <meta charset="UTF-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <title>Text & File Upload</title>
+              </head>
+              <body>
+                <h2>Upload Your Text</h2>
+                <form action="/" method="post">
+                  <textarea name="textbox" rows="4" cols="50"></textarea><br />
+                  <input type="submit" value="Upload" />
+                </form>
+
+                <h2>Upload a File</h2>
+                <form action="/" method="post" enctype="multipart/form-data">
+                  <input type="file" name="file" multiple /><br /><br />
+                  <input type="submit" value="Upload" />
+                </form>
+
+                <h2>Files in R:\\uploads</h2>
+                {file_list_html}
+              </body>
+            </html>
+            """
+            self.wfile.write(html.encode())
+        elif self.path.startswith("/uploads/"):
             fname = urllib.parse.unquote(self.path[len("/uploads/"):])
             file_path = os.path.join(UPLOAD_DIR, fname)
             if os.path.isfile(file_path):
@@ -88,6 +129,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     self.wfile.write(f.read())
             else:
                 self.send_error(404, "File not found")
+        else:
+            self.send_error(404, "Not found")
 
 
 Handler = MyHandler
